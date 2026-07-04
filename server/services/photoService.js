@@ -44,18 +44,24 @@ async function checkSession(sessionId) {
   return result.rowCount > 0
 }
 
-function dataUrlToBuffer(imageDataUrl) {
+function dataUrlToImage(imageDataUrl) {
   if (!imageDataUrl || typeof imageDataUrl !== 'string') {
     throw makeError('Data gambar wajib dikirim.')
   }
 
-  const match = imageDataUrl.match(/^data:image\/png;base64,(.+)$/)
+  const match = imageDataUrl.match(/^data:image\/(png|jpe?g|webp);base64,(.+)$/i)
 
   if (!match) {
-    throw makeError('Format gambar harus PNG base64.')
+    throw makeError('Format gambar harus PNG, JPG, JPEG, atau WEBP base64.')
   }
 
-  return Buffer.from(match[1], 'base64')
+  const rawExtension = match[1].toLowerCase()
+  const extension = rawExtension === 'jpeg' ? 'jpg' : rawExtension
+
+  return {
+    buffer: Buffer.from(match[2], 'base64'),
+    extension,
+  }
 }
 
 async function savePngDataUrl({
@@ -64,17 +70,17 @@ async function savePngDataUrl({
   prefix,
   index,
 }) {
-  const imageBuffer = dataUrlToBuffer(imageDataUrl)
+  const image = dataUrlToImage(imageDataUrl)
 
   await fs.mkdir(uploadDir, { recursive: true })
 
   const randomName = crypto.randomBytes(8).toString('hex')
   const safeIndex = Number.isFinite(Number(index)) ? Number(index) : 0
-  const fileName = `session-${sessionId}-${prefix}-${Date.now()}-${safeIndex}-${randomName}.png`
+  const fileName = `session-${sessionId}-${prefix}-${Date.now()}-${safeIndex}-${randomName}.${image.extension}`
   const filePath = path.join(uploadDir, fileName)
   const imageUrl = `/uploads/photobooth/${fileName}`
 
-  await fs.writeFile(filePath, imageBuffer)
+  await fs.writeFile(filePath, image.buffer)
 
   return {
     fileName,
@@ -87,7 +93,7 @@ function normalizeOriginalPhotos(value) {
   if (!Array.isArray(value)) return []
 
   return value
-    .filter((item) => typeof item === 'string' && item.startsWith('data:image/png;base64,'))
+    .filter((item) => typeof item === 'string' && /^data:image\/(png|jpe?g|webp);base64,/i.test(item))
     .slice(0, 12)
 }
 
