@@ -49,6 +49,7 @@ function PhotoDetailModal({
 
   const finalPhotoUrl = buildPhotoUrl(photo.imageUrl)
   const originalPhotos = getOriginalPhotos(photo)
+  const [selectedOriginalPhoto, setSelectedOriginalPhoto] = useState(null)
 
   return (
     <div
@@ -168,12 +169,14 @@ function PhotoDetailModal({
                     const originalUrl = buildPhotoUrl(originalPhoto.imageUrl || originalPhoto.url || originalPhoto)
 
                     return (
-                      <a
+                      <button
                         key={`${originalUrl}-${index}`}
-                        href={originalUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="group overflow-hidden rounded-2xl bg-slate-900 p-2"
+                        type="button"
+                        onClick={() => setSelectedOriginalPhoto({
+                          url: originalUrl,
+                          label: `Foto ${index + 1}`,
+                        })}
+                        className="group overflow-hidden rounded-2xl bg-slate-900 p-2 text-left"
                       >
                         <img
                           src={originalUrl}
@@ -185,7 +188,7 @@ function PhotoDetailModal({
                         <p className="mt-2 text-center text-xs font-semibold text-slate-300">
                           Foto {index + 1}
                         </p>
-                      </a>
+                      </button>
                     )
                   })}
                 </div>
@@ -199,6 +202,41 @@ function PhotoDetailModal({
             </div>
           </aside>
         </div>
+
+        {selectedOriginalPhoto && (
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 px-4 py-6"
+            onClick={() => setSelectedOriginalPhoto(null)}
+          >
+            <div
+              className="max-h-full w-full max-w-4xl overflow-hidden rounded-[1.5rem] border border-white/10 bg-slate-950 shadow-2xl shadow-black/70"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="flex items-center justify-between gap-4 border-b border-white/10 bg-white/[0.04] px-4 py-3">
+                <p className="text-sm font-bold text-white">
+                  {selectedOriginalPhoto.label}
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedOriginalPhoto(null)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.08] text-xl font-bold text-white transition hover:bg-white/[0.14]"
+                  aria-label="Tutup preview foto asli"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="p-3 sm:p-4">
+                <img
+                  src={selectedOriginalPhoto.url}
+                  alt={selectedOriginalPhoto.label}
+                  className="mx-auto max-h-[82vh] w-full rounded-2xl object-contain"
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
