@@ -7,6 +7,7 @@ import { useCamera } from '../hooks/useCamera'
 import { useCountdown } from '../hooks/useCountdown'
 import { captureVideoFrame, createPhotoboothStrip } from '../utils/canvas'
 import { downloadImage } from '../utils/download'
+import { printImageWithQz } from '../utils/qzPrint'
 import { savePhoto } from '../services/photoApi'
 
 const DELAY_BETWEEN_PHOTOS = 800
@@ -54,6 +55,9 @@ function BoothPage({
   const [isSavingToGallery, setIsSavingToGallery] = useState(false)
   const [savedPhoto, setSavedPhoto] = useState(null)
   const [saveErrorMessage, setSaveErrorMessage] = useState('')
+  const [isPrinting, setIsPrinting] = useState(false)
+  const [printMessage, setPrintMessage] = useState('')
+  const [printErrorMessage, setPrintErrorMessage] = useState('')
   const framingGuideRef = useRef(null)
 
   const outputFrame = useMemo(() => {
@@ -105,6 +109,8 @@ function BoothPage({
     setCurrentPhotoIndex(0)
     setSavedPhoto(null)
     setSaveErrorMessage('')
+    setPrintMessage('')
+    setPrintErrorMessage('')
   }, [])
 
   const handleDownloadStrip = useCallback(() => {
@@ -115,6 +121,24 @@ function BoothPage({
       `photobooth-${selectedLayout.id}-${Date.now()}.png`,
     )
   }, [selectedLayout.id, stripUrl])
+
+  const handlePrintStrip = useCallback(async () => {
+    if (!stripUrl || isPrinting) return
+
+    try {
+      setIsPrinting(true)
+      setPrintMessage('')
+      setPrintErrorMessage('')
+
+      const result = await printImageWithQz(stripUrl)
+
+      setPrintMessage(`Print dikirim ke printer: ${result.printerName}`)
+    } catch (error) {
+      setPrintErrorMessage(error.message || 'Gagal mengirim hasil ke printer.')
+    } finally {
+      setIsPrinting(false)
+    }
+  }, [isPrinting, stripUrl])
 
   const handleSaveToGallery = useCallback(async () => {
     if (!stripUrl || !sessionId || isSavingToGallery || savedPhoto) return
@@ -156,6 +180,8 @@ function BoothPage({
     setStripUrl('')
     setSavedPhoto(null)
     setSaveErrorMessage('')
+    setPrintMessage('')
+    setPrintErrorMessage('')
     setIsSessionRunning(true)
     setCurrentPhotoIndex(0)
 
@@ -318,6 +344,16 @@ function BoothPage({
                   </Button>
                 )}
 
+                {stripUrl && (
+                  <Button
+                    onClick={handlePrintStrip}
+                    disabled={isPrinting}
+                    className="w-full py-4 text-base"
+                  >
+                    {isPrinting ? 'Mengirim ke Printer...' : 'Print'}
+                  </Button>
+                )}
+
                 {(photos.length > 0 || stripUrl) && (
                   <Button
                     variant="secondary"
@@ -334,6 +370,22 @@ function BoothPage({
                 <div className="mt-4 rounded-2xl border border-red-400/20 bg-red-500/10 p-4">
                   <p className="text-sm leading-6 text-red-200">
                     {saveErrorMessage}
+                  </p>
+                </div>
+              )}
+
+              {printErrorMessage && (
+                <div className="mt-4 rounded-2xl border border-red-400/20 bg-red-500/10 p-4">
+                  <p className="text-sm leading-6 text-red-200">
+                    {printErrorMessage}
+                  </p>
+                </div>
+              )}
+
+              {printMessage && (
+                <div className="mt-4 rounded-2xl border border-sky-400/20 bg-sky-500/10 p-4">
+                  <p className="text-sm leading-6 text-sky-100">
+                    {printMessage}
                   </p>
                 </div>
               )}
