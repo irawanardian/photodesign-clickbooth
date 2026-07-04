@@ -24,6 +24,7 @@ function mapPhoto(row) {
     imageUrl: row.image_url,
     frameId: row.frame_id,
     layoutId: row.layout_id,
+    originalPhotos: Array.isArray(row.original_photos) ? row.original_photos : [],
     createdAt: row.created_at,
   }
 }
@@ -57,6 +58,39 @@ function dataUrlToBuffer(imageDataUrl) {
   return Buffer.from(match[1], 'base64')
 }
 
+async function savePngDataUrl({
+  imageDataUrl,
+  sessionId,
+  prefix,
+  index,
+}) {
+  const imageBuffer = dataUrlToBuffer(imageDataUrl)
+
+  await fs.mkdir(uploadDir, { recursive: true })
+
+  const randomName = crypto.randomBytes(8).toString('hex')
+  const safeIndex = Number.isFinite(Number(index)) ? Number(index) : 0
+  const fileName = `session-${sessionId}-${prefix}-${Date.now()}-${safeIndex}-${randomName}.png`
+  const filePath = path.join(uploadDir, fileName)
+  const imageUrl = `/uploads/photobooth/${fileName}`
+
+  await fs.writeFile(filePath, imageBuffer)
+
+  return {
+    fileName,
+    filePath,
+    imageUrl,
+  }
+}
+
+function normalizeOriginalPhotos(value) {
+  if (!Array.isArray(value)) return []
+
+  return value
+    .filter((item) => typeof item === 'string' && item.startsWith('data:image/png;base64,'))
+    .slice(0, 12)
+}
+
 export async function savePhoto(payload) {
   const sessionId = Number(payload.sessionId)
   const frameId = String(payload.frameId || '').trim()
@@ -72,40 +106,64 @@ export async function savePhoto(payload) {
     throw makeError('Sesi tidak ditemukan.', 404)
   }
 
-  const imageBuffer = dataUrlToBuffer(payload.imageDataUrl)
+    const finalImage = await savePngDataUrl({
+      imageDataUrl: payload.imageDataUrl,
+      sessionId,
+      prefix: 'final',
+      index: 0,
+    })
 
-  await fs.mkdir(uploadDir, { recursive: true })
+    const originalPhotoDataUrls = normalizeOriginalPhotos(payload.originalPhotos)
+    const originalPhotos = []
 
-  const randomName = crypto.randomBytes(8).toString('hex')
-  const fileName = `session-${sessionId}-${Date.now()}-${randomName}.png`
-  const filePath = path.join(uploadDir, fileName)
-  const imageUrl = `/uploads/photobooth/${fileName}`
+    for (let index = 0; index < originalPhotoDataUrls.length; index += 1) {
+      const originalImage = await savePngDataUrl({
+        imageDataUrl: originalPhotoDataUrls[index],
+        sessionId,
+        prefix: 'original',
+        index: index + 1,
+      })
 
-  await fs.writeFile(filePath, imageBuffer)
+      originalPhotos.push({
+        index: index + 1,
+        fileName: originalImage.fileName,
+        imageUrl: originalImage.imageUrl,
+      })
+    }
 
-  const result = await pool.query(
-    `
-      INSERT INTO photobooth_photos (
-        session_id,
-        file_name,
-        file_path,
-        image_url,
-        frame_id,
-        layout_id
-      )
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING
-        id,
-        session_id,
-        file_name,
-        file_path,
-        image_url,
-        frame_id,
-        layout_id,
-        created_at
-    `,
-    [sessionId, fileName, filePath, imageUrl, frameId, layoutId],
-  )
+    const result = await pool.query(
+      `
+        INSERT INTO photobooth_photos (
+          session_id,
+          file_name,
+          file_path,
+          image_url,
+          frame_id,
+          layout_id,
+          original_photos
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
+        RETURNING
+          id,
+          session_id,
+          file_name,
+          file_path,
+          image_url,
+          frame_id,
+          layout_id,
+          original_photos,
+          created_at
+      `,
+      [
+        sessionId,
+        finalImage.fileName,
+        finalImage.filePath,
+        finalImage.imageUrl,
+        frameId,
+        layoutId,
+        JSON.stringify(originalPhotos),
+      ],
+    )
 
   return mapPhoto(result.rows[0])
 }
@@ -121,6 +179,7 @@ export async function getPhotosBySession(sessionId) {
         image_url,
         frame_id,
         layout_id,
+          original_photos,
         created_at
       FROM photobooth_photos
       WHERE session_id = $1

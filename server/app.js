@@ -18,7 +18,7 @@ const app = express()
 const port = Number(process.env.APP_PORT || 5005)
 
 app.use(cors())
-app.use(express.json({ limit: '25mb' }))
+app.use(express.json({ limit: '75mb' }))
 app.use('/uploads', express.static(path.join(projectRoot, 'public', 'uploads')))
 
 app.get('/api/health', async (req, res) => {

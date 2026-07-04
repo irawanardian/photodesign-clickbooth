@@ -152,6 +152,7 @@ function BoothPage({
         frameId: selectedFrame.id,
         layoutId: selectedLayout.id,
         imageDataUrl: stripUrl,
+          originalPhotos: photos.filter(Boolean),
       })
 
       setSavedPhoto(photo)
@@ -163,7 +164,8 @@ function BoothPage({
   }, [
     isSavingToGallery,
     savedPhoto,
-    selectedFrame.id,
+      photos,
+      selectedFrame.id,
     selectedLayout.id,
     sessionId,
     stripUrl,

@@ -19,6 +19,191 @@ function formatDateTime(value) {
   }).format(new Date(value))
 }
 
+function getOriginalPhotos(photo) {
+  const value = photo?.originalPhotos || photo?.original_photos || []
+
+  if (Array.isArray(value)) {
+    return value.filter(Boolean)
+  }
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+
+      if (Array.isArray(parsed)) {
+        return parsed.filter(Boolean)
+      }
+    } catch {
+      return value ? [value] : []
+    }
+  }
+
+  return []
+}
+
+function PhotoDetailModal({
+  photo,
+  onClose,
+}) {
+  if (!photo) return null
+
+  const finalPhotoUrl = buildPhotoUrl(photo.imageUrl)
+  const originalPhotos = getOriginalPhotos(photo)
+
+  return (
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/80 px-4 py-4 backdrop-blur-sm sm:px-6 sm:py-8"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Detail foto ${photo.id}`}
+        className="mx-auto max-w-6xl overflow-hidden rounded-[1.6rem] border border-white/10 bg-slate-950 text-white shadow-2xl shadow-black/50 sm:rounded-[2rem]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <header className="flex flex-col gap-4 border-b border-white/10 bg-white/[0.04] p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
+          <div>
+            <p className="text-xs font-medium text-pink-300">
+              Detail Foto
+            </p>
+
+            <h2 className="mt-1 text-xl font-bold tracking-tight sm:text-2xl">
+              Photo #{photo.id}
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-400">
+              {formatDateTime(photo.createdAt)}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-xl font-bold text-white transition hover:bg-white/[0.12]"
+            aria-label="Tutup detail foto"
+          >
+            ×
+          </button>
+        </header>
+
+        <div className="grid gap-5 p-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)] sm:p-5">
+          <section className="min-w-0">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h3 className="text-sm font-semibold text-slate-100">
+                Foto Final / Layout
+              </h3>
+
+              <a
+                href={finalPhotoUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs font-semibold text-pink-300 hover:text-pink-200"
+              >
+                Buka besar
+              </a>
+            </div>
+
+            <div className="rounded-[1.4rem] bg-slate-900 p-2 sm:p-3">
+              <img
+                src={finalPhotoUrl}
+                alt={`Hasil final photobooth ${photo.id}`}
+                className="max-h-[78vh] w-full rounded-[1rem] object-contain"
+              />
+            </div>
+          </section>
+
+          <aside className="min-w-0">
+            <div className="rounded-[1.4rem] border border-white/10 bg-white/[0.04] p-4">
+              <h3 className="text-sm font-semibold text-slate-100">
+                Informasi Foto
+              </h3>
+
+              <div className="mt-4 grid gap-3 text-sm">
+                <div className="flex justify-between gap-4 rounded-2xl bg-slate-900 px-4 py-3">
+                  <span className="text-slate-400">Template</span>
+                  <span className="text-right font-semibold">{photo.frameId}</span>
+                </div>
+
+                <div className="flex justify-between gap-4 rounded-2xl bg-slate-900 px-4 py-3">
+                  <span className="text-slate-400">Layout</span>
+                  <span className="text-right font-semibold">{photo.layoutId}</span>
+                </div>
+
+                <div className="flex justify-between gap-4 rounded-2xl bg-slate-900 px-4 py-3">
+                  <span className="text-slate-400">Original</span>
+                  <span className="text-right font-semibold">{originalPhotos.length} foto</span>
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                <a href={finalPhotoUrl} target="_blank" rel="noreferrer">
+                  <Button className="w-full py-3.5">
+                    Buka Foto
+                  </Button>
+                </a>
+
+                <a href={finalPhotoUrl} download={photo.fileName}>
+                  <Button variant="secondary" className="w-full py-3.5">
+                    Download
+                  </Button>
+                </a>
+              </div>
+            </div>
+
+            <div className="mt-5 rounded-[1.4rem] border border-white/10 bg-white/[0.04] p-4">
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold text-slate-100">
+                  Foto Asli Capture
+                </h3>
+
+                <p className="mt-1 text-xs leading-5 text-slate-400">
+                  Bagian ini akan menampilkan foto asli satu per satu sebelum masuk template.
+                </p>
+              </div>
+
+              {originalPhotos.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {originalPhotos.map((originalPhoto, index) => {
+                    const originalUrl = buildPhotoUrl(originalPhoto.imageUrl || originalPhoto.url || originalPhoto)
+
+                    return (
+                      <a
+                        key={`${originalUrl}-${index}`}
+                        href={originalUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group overflow-hidden rounded-2xl bg-slate-900 p-2"
+                      >
+                        <img
+                          src={originalUrl}
+                          alt={`Foto asli ${index + 1}`}
+                          loading="lazy"
+                          className="aspect-[3/4] w-full rounded-xl object-cover transition group-hover:scale-[1.02]"
+                        />
+
+                        <p className="mt-2 text-center text-xs font-semibold text-slate-300">
+                          Foto {index + 1}
+                        </p>
+                      </a>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-white/10 bg-slate-900 p-4">
+                  <p className="text-sm leading-6 text-slate-300">
+                    Foto asli belum tersimpan di data galeri. Setelah backend dan BoothPage dikirim field original photos, foto asli akan muncul di sini.
+                  </p>
+                </div>
+              )}
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function PhotoGalleryPage({
   session,
   onBack,
@@ -28,6 +213,7 @@ function PhotoGalleryPage({
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null)
+  const [selectedPhoto, setSelectedPhoto] = useState(null)
 
   const isPublicGallery = useMemo(() => {
     const params = new URLSearchParams(window.location.search)
@@ -45,7 +231,6 @@ function PhotoGalleryPage({
       }
 
       setErrorMessage('')
-
       const data = await getPhotosBySession(session.id)
 
       setPhotos(data)
@@ -75,6 +260,33 @@ function PhotoGalleryPage({
       window.clearInterval(interval)
     }
   }, [isPublicGallery, session.id])
+
+  useEffect(() => {
+    if (!selectedPhoto) return undefined
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [selectedPhoto])
+
+  useEffect(() => {
+    if (!selectedPhoto) return undefined
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        setSelectedPhoto(null)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [selectedPhoto])
 
   return (
     <main className="min-h-screen bg-slate-950 px-4 py-4 text-white sm:px-6 sm:py-5">
@@ -135,7 +347,7 @@ function PhotoGalleryPage({
         {isPublicGallery && (
           <div className="mb-5 rounded-[1.5rem] border border-pink-400/20 bg-pink-500/10 p-4 sm:rounded-[1.8rem]">
             <p className="text-sm leading-6 text-pink-100">
-              Semua hasil foto dari sesi ini akan muncul otomatis di sini. Simpan link ini atau scan QR yang sama untuk membuka galeri lagi.
+              Semua hasil foto dari sesi ini akan muncul otomatis di sini. Klik salah satu foto untuk melihat detail hasil layout dan foto asli capture.
             </p>
           </div>
         )}
@@ -178,7 +390,16 @@ function PhotoGalleryPage({
               return (
                 <article
                   key={photo.id}
-                  className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/[0.04] shadow-2xl shadow-black/20 sm:rounded-[1.8rem]"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedPhoto(photo)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      setSelectedPhoto(photo)
+                    }
+                  }}
+                  className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/[0.04] shadow-2xl shadow-black/20 transition hover:border-pink-300/40 hover:bg-white/[0.07] focus:outline-none focus:ring-2 focus:ring-pink-300/70 sm:rounded-[1.8rem]"
                 >
                   <div className="bg-slate-900 p-2 sm:p-3">
                     <img
@@ -198,6 +419,10 @@ function PhotoGalleryPage({
                       <p className="mt-1 text-sm text-slate-400">
                         {formatDateTime(photo.createdAt)}
                       </p>
+
+                      <p className="mt-2 text-xs font-semibold text-slate-300">
+                        Klik card untuk lihat detail
+                      </p>
                     </div>
 
                     <div className="grid gap-2 rounded-2xl bg-slate-900 p-4 text-sm">
@@ -213,13 +438,22 @@ function PhotoGalleryPage({
                     </div>
 
                     <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                      <a href={photoUrl} target="_blank" rel="noreferrer">
+                      <a
+                        href={photoUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(event) => event.stopPropagation()}
+                      >
                         <Button className="w-full py-3.5">
                           Buka Foto
                         </Button>
                       </a>
 
-                      <a href={photoUrl} download={photo.fileName}>
+                      <a
+                        href={photoUrl}
+                        download={photo.fileName}
+                        onClick={(event) => event.stopPropagation()}
+                      >
                         <Button variant="secondary" className="w-full py-3.5">
                           Download
                         </Button>
@@ -232,6 +466,11 @@ function PhotoGalleryPage({
           </section>
         )}
       </div>
+
+      <PhotoDetailModal
+        photo={selectedPhoto}
+        onClose={() => setSelectedPhoto(null)}
+      />
     </main>
   )
 }
