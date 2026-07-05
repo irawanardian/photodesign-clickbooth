@@ -114,8 +114,11 @@ export function captureVideoFrame(videoElement, guideElement = null, options = {
   const canvas = document.createElement('canvas')
   const context = canvas.getContext('2d')
 
-  canvas.width = 1200
+  canvas.width = 1920
   canvas.height = Math.round(canvas.width / aspectRatio)
+
+  context.imageSmoothingEnabled = true
+  context.imageSmoothingQuality = 'high'
 
   if (!guideElement || !guideRect?.width || !guideRect?.height) {
     context.save()
@@ -124,7 +127,7 @@ export function captureVideoFrame(videoElement, guideElement = null, options = {
     drawImageCover(context, videoElement, 0, 0, canvas.width, canvas.height)
     context.restore()
 
-    return canvas.toDataURL('image/jpeg', 0.95)
+    return canvas.toDataURL('image/jpeg', 0.98)
   }
 
   const {
@@ -161,7 +164,7 @@ export function captureVideoFrame(videoElement, guideElement = null, options = {
   )
   context.restore()
 
-  return canvas.toDataURL('image/jpeg', 0.95)
+  return canvas.toDataURL('image/jpeg', 0.98)
 }
 
 function drawPhotoSlot(context, image, x, y, width, height) {
@@ -365,13 +368,20 @@ export async function createPhotoboothStrip(photos, frame, layout, printSize = '
   const frameCanvasWidth = Number(frame?.canvasWidth)
   const frameCanvasHeight = Number(frame?.canvasHeight)
 
-  canvas.width = Number.isFinite(frameCanvasWidth) && frameCanvasWidth > 0
+  const exportScale = 2
+  const baseCanvasWidth = Number.isFinite(frameCanvasWidth) && frameCanvasWidth > 0
     ? frameCanvasWidth
     : is4R ? 1200 : 600
 
-  canvas.height = Number.isFinite(frameCanvasHeight) && frameCanvasHeight > 0
+  const baseCanvasHeight = Number.isFinite(frameCanvasHeight) && frameCanvasHeight > 0
     ? frameCanvasHeight
     : 1800
+
+  canvas.width = baseCanvasWidth * exportScale
+  canvas.height = baseCanvasHeight * exportScale
+
+  context.imageSmoothingEnabled = true
+  context.imageSmoothingQuality = 'high'
 
   const hasOverlay = Boolean(frame?.overlayImageUrl)
   const overlayUrl = resolveAssetUrl(frame?.overlayImageUrl)
