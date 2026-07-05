@@ -118,11 +118,7 @@ export function captureVideoFrame(videoElement, guideElement = null, options = {
   canvas.height = Math.round(canvas.width / aspectRatio)
 
   if (!guideElement || !guideRect?.width || !guideRect?.height) {
-    context.save()
-    context.translate(canvas.width, 0)
-    context.scale(-1, 1)
     drawImageCover(context, videoElement, 0, 0, canvas.width, canvas.height)
-    context.restore()
 
     return canvas.toDataURL('image/jpeg', 0.95)
   }
@@ -145,9 +141,6 @@ export function captureVideoFrame(videoElement, guideElement = null, options = {
   const sourceWidth = (guideRect.width / renderedWidth) * videoWidth
   const sourceHeight = (guideRect.height / renderedHeight) * videoHeight
 
-  context.save()
-  context.translate(canvas.width, 0)
-  context.scale(-1, 1)
   context.drawImage(
     videoElement,
     sourceX,
@@ -159,7 +152,6 @@ export function captureVideoFrame(videoElement, guideElement = null, options = {
     canvas.width,
     canvas.height,
   )
-  context.restore()
 
   return canvas.toDataURL('image/jpeg', 0.95)
 }

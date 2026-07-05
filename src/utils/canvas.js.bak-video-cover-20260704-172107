@@ -28,25 +28,20 @@ function loadImage(src) {
 }
 
 function drawImageCover(context, image, x, y, width, height) {
-  const imageWidth = image?.videoWidth || image?.naturalWidth || image?.width
-  const imageHeight = image?.videoHeight || image?.naturalHeight || image?.height
-
-  if (!imageWidth || !imageHeight) return
-
-  const imageRatio = imageWidth / imageHeight
+  const sourceRatio = image.width / image.height
   const targetRatio = width / height
 
+  let sourceWidth = image.width
+  let sourceHeight = image.height
   let sourceX = 0
   let sourceY = 0
-  let sourceWidth = imageWidth
-  let sourceHeight = imageHeight
 
-  if (imageRatio > targetRatio) {
-    sourceWidth = imageHeight * targetRatio
-    sourceX = (imageWidth - sourceWidth) / 2
+  if (sourceRatio > targetRatio) {
+    sourceWidth = image.height * targetRatio
+    sourceX = (image.width - sourceWidth) / 2
   } else {
-    sourceHeight = imageWidth / targetRatio
-    sourceY = (imageHeight - sourceHeight) / 2
+    sourceHeight = image.width / targetRatio
+    sourceY = (image.height - sourceHeight) / 2
   }
 
   context.drawImage(
@@ -96,28 +91,16 @@ function getVideoObjectCoverRect(videoElement) {
   }
 }
 
-export function captureVideoFrame(videoElement, guideElement = null, options = {}) {
+export function captureVideoFrame(videoElement, guideElement = null) {
   if (!videoElement) return ''
-
-  const guideRect = guideElement?.getBoundingClientRect?.()
-  const requestedAspectRatio = Number(options.aspectRatio)
-  const guideAspectRatio = guideRect?.width && guideRect?.height
-    ? guideRect.width / guideRect.height
-    : 0
-
-  const aspectRatio = Number.isFinite(requestedAspectRatio) && requestedAspectRatio > 0
-    ? requestedAspectRatio
-    : guideAspectRatio > 0
-      ? guideAspectRatio
-      : 4 / 3
 
   const canvas = document.createElement('canvas')
   const context = canvas.getContext('2d')
 
   canvas.width = 1200
-  canvas.height = Math.round(canvas.width / aspectRatio)
+  canvas.height = 900
 
-  if (!guideElement || !guideRect?.width || !guideRect?.height) {
+  if (!guideElement) {
     context.save()
     context.translate(canvas.width, 0)
     context.scale(-1, 1)
@@ -127,6 +110,7 @@ export function captureVideoFrame(videoElement, guideElement = null, options = {
     return canvas.toDataURL('image/jpeg', 0.95)
   }
 
+  const guideRect = guideElement.getBoundingClientRect()
   const {
     videoRect,
     videoWidth,

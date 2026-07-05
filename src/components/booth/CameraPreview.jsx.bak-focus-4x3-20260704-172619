@@ -1,30 +1,22 @@
 function CameraPreview({
   videoRef,
-  containerRef = null,
   isCameraReady,
   errorMessage,
   cameraError,
   error,
-  className = '',
-  style = undefined,
 }) {
   const message = errorMessage || cameraError || error || ''
   const hasVideoStream = Boolean(videoRef?.current?.srcObject)
   const shouldShowError = Boolean(message) && !isCameraReady && !hasVideoStream
-  const containerClassName = className || 'relative h-full min-h-[360px] overflow-hidden rounded-[1.8rem] border border-white/10 bg-slate-900 shadow-2xl shadow-black/30'
 
   return (
-    <div
-      ref={containerRef}
-      className={containerClassName}
-      style={style}
-    >
+    <div className="relative h-full min-h-[360px] overflow-hidden rounded-[1.8rem] border border-white/10 bg-slate-900 shadow-2xl shadow-black/30">
       <video
         ref={videoRef}
         autoPlay
         playsInline
         muted
-        className="h-full w-full -scale-x-100 object-cover"
+        className="h-full w-full object-cover"
       />
 
       {!isCameraReady && !message && (

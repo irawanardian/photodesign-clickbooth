@@ -96,28 +96,16 @@ function getVideoObjectCoverRect(videoElement) {
   }
 }
 
-export function captureVideoFrame(videoElement, guideElement = null, options = {}) {
+export function captureVideoFrame(videoElement, guideElement = null) {
   if (!videoElement) return ''
-
-  const guideRect = guideElement?.getBoundingClientRect?.()
-  const requestedAspectRatio = Number(options.aspectRatio)
-  const guideAspectRatio = guideRect?.width && guideRect?.height
-    ? guideRect.width / guideRect.height
-    : 0
-
-  const aspectRatio = Number.isFinite(requestedAspectRatio) && requestedAspectRatio > 0
-    ? requestedAspectRatio
-    : guideAspectRatio > 0
-      ? guideAspectRatio
-      : 4 / 3
 
   const canvas = document.createElement('canvas')
   const context = canvas.getContext('2d')
 
   canvas.width = 1200
-  canvas.height = Math.round(canvas.width / aspectRatio)
+  canvas.height = 900
 
-  if (!guideElement || !guideRect?.width || !guideRect?.height) {
+  if (!guideElement) {
     context.save()
     context.translate(canvas.width, 0)
     context.scale(-1, 1)
@@ -127,6 +115,7 @@ export function captureVideoFrame(videoElement, guideElement = null, options = {
     return canvas.toDataURL('image/jpeg', 0.95)
   }
 
+  const guideRect = guideElement.getBoundingClientRect()
   const {
     videoRect,
     videoWidth,

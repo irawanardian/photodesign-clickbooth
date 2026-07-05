@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import CameraPreview from '../components/booth/CameraPreview'
 import CountdownOverlay from '../components/booth/CountdownOverlay'
+import FramingGuide from '../components/booth/FramingGuide'
 import Button from '../components/ui/Button'
 import { useCamera } from '../hooks/useCamera'
 import { useCountdown } from '../hooks/useCountdown'
@@ -57,8 +58,7 @@ function BoothPage({
   const [isPrinting, setIsPrinting] = useState(false)
   const [printMessage, setPrintMessage] = useState('')
   const [printErrorMessage, setPrintErrorMessage] = useState('')
-  const [isShutterFlashing, setIsShutterFlashing] = useState(false)
-  const capturePreviewRef = useRef(null)
+  const framingGuideRef = useRef(null)
 
   const outputFrame = useMemo(() => {
     return {
@@ -80,41 +80,8 @@ function BoothPage({
       : 3
   }, [outputFrame.photoSlots, sessionTotalPhotos])
 
-  const activeCaptureAspectRatio = useMemo(() => {
-    const slots = Array.isArray(outputFrame.photoSlots) ? outputFrame.photoSlots : []
-    const slotIndex = Math.max(0, currentPhotoIndex - 1)
-    const slot = slots[slotIndex] || slots[0]
-    const slotWidthPercent = Number(slot?.width)
-    const slotHeightPercent = Number(slot?.height)
-
-    // photoSlots pakai persen: width relatif ke canvas width, height relatif ke canvas height.
-    // Jadi rasio asli slot harus dikalikan rasio canvas output.
-    const paperSize = String(outputFrame.paperSize || outputFrame.paper_size || '4x6').toLowerCase()
-    const canvasAspectRatio = paperSize === '4x6' ? 1800 / 1200 : 1200 / 1800
-
-    if (
-      Number.isFinite(slotWidthPercent) &&
-      Number.isFinite(slotHeightPercent) &&
-      slotWidthPercent > 0 &&
-      slotHeightPercent > 0
-    ) {
-      return (slotWidthPercent * canvasAspectRatio) / slotHeightPercent
-    }
-
-    return 4 / 3
-  }, [currentPhotoIndex, outputFrame.paperSize, outputFrame.paper_size, outputFrame.photoSlots])
-
   const isSessionComplete = photos.length === effectiveTotalPhotos && stripUrl
   const isFocusCameraMode = isSessionRunning
-
-  const cameraPreviewStyle = {
-    aspectRatio: activeCaptureAspectRatio,
-    ...(isFocusCameraMode
-      ? {
-          maxWidth: `${Math.min(activeCaptureAspectRatio * 92, 96)}vh`,
-        }
-      : {}),
-  }
 
   const statusText = isCountingDown
     ? `Countdown ${count}`
@@ -225,11 +192,7 @@ function BoothPage({
 
       await startCountdown(countdownSeconds)
 
-      setIsShutterFlashing(true)
-      window.setTimeout(() => {
-        setIsShutterFlashing(false)
-      }, 280)
-      const photo = captureVideoFrame(videoRef.current, capturePreviewRef.current, { aspectRatio: activeCaptureAspectRatio })
+      const photo = captureVideoFrame(videoRef.current, framingGuideRef.current)
 
       if (photo) {
         capturedPhotos.push(photo)
@@ -300,30 +263,17 @@ function BoothPage({
           <div
             className={
               isFocusCameraMode
-                  ? 'fixed inset-0 z-50 flex items-center justify-center bg-slate-950 p-4'
-                  : 'relative min-h-0'
+                ? 'fixed inset-4 z-50 min-h-0'
+                : 'relative min-h-0'
             }
           >
-              <CameraPreview
-                videoRef={videoRef}
-                containerRef={isFocusCameraMode ? capturePreviewRef : null}
-                isCameraReady={isCameraReady}
-                errorMessage={cameraError}
-                className={
-                  isFocusCameraMode
-                    ? 'relative w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)] overflow-hidden rounded-[1.8rem] border border-white/10 bg-slate-900 shadow-2xl shadow-black/30'
-                    : 'relative w-full overflow-hidden rounded-[1.8rem] border border-white/10 bg-slate-900 shadow-2xl shadow-black/30'
-                }
-                style={cameraPreviewStyle}
-              />
+            <CameraPreview
+              videoRef={videoRef}
+              isCameraReady={isCameraReady}
+              errorMessage={cameraError}
+            />
 
-              {isShutterFlashing && (
-                <div
-                  className="pointer-events-none absolute inset-0 z-40 bg-white/90"
-                  aria-hidden="true"
-                />
-              )}
-
+            {isFocusCameraMode && <FramingGuide ref={framingGuideRef} />}
 
             <CountdownOverlay
               count={count}
