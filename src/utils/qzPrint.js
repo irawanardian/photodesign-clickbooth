@@ -8,8 +8,6 @@ const DNP_PRINTER_KEYWORDS = [
   'Dai Nippon',
 ]
 
-const PRINT_BLEED_RATIO = 0.03
-
 function normalizePrinterName(name) {
   return String(name || '').toLowerCase()
 }
@@ -26,38 +24,6 @@ function findPrinterByKeywords(printers = []) {
       return normalized.includes(keyword.toLowerCase())
     })
   })
-}
-
-function loadImageFromDataUrl(dataUrl) {
-  return new Promise((resolve, reject) => {
-    const image = new Image()
-
-    image.onload = () => resolve(image)
-    image.onerror = () => reject(new Error('Gagal membaca gambar untuk print.'))
-    image.src = dataUrl
-  })
-}
-
-async function createBleedImageDataUrl(imageDataUrl, bleedRatio = PRINT_BLEED_RATIO) {
-  const image = await loadImageFromDataUrl(imageDataUrl)
-  const canvas = document.createElement('canvas')
-  const context = canvas.getContext('2d')
-
-  canvas.width = image.naturalWidth || image.width
-  canvas.height = image.naturalHeight || image.height
-
-  context.fillStyle = '#ffffff'
-  context.fillRect(0, 0, canvas.width, canvas.height)
-
-  const scale = 1 + bleedRatio
-  const drawWidth = canvas.width * scale
-  const drawHeight = canvas.height * scale
-  const drawX = (canvas.width - drawWidth) / 2
-  const drawY = (canvas.height - drawHeight) / 2
-
-  context.drawImage(image, drawX, drawY, drawWidth, drawHeight)
-
-  return canvas.toDataURL('image/png')
 }
 
 export async function connectQzTray() {
@@ -104,27 +70,12 @@ export async function printImageWithQz(imageDataUrl, preferredPrinterName = '') 
     throw new Error(`Printer DNP RX1 tidak ditemukan. Printer terbaca: ${printerList}`)
   }
 
-  const printReadyImageDataUrl = await createBleedImageDataUrl(imageDataUrl)
-  const base64Image = stripDataUrlPrefix(printReadyImageDataUrl)
+  const base64Image = stripDataUrlPrefix(imageDataUrl)
 
+  // Sengaja pakai config minimal.
+  // Ukuran 4x6, borderless, portrait, dan 2 inch cut diatur dari Windows Printer Preferences DS-RX1.
   const config = qz.configs.create(printerName, {
-    units: 'in',
-    size: {
-      width: 4,
-      height: 6,
-    },
-    orientation: 'portrait',
-    margins: {
-      top: 0,
-      right: 0,
-      bottom: 0,
-      left: 0,
-    },
-    scaleContent: true,
-    interpolation: 'bicubic',
-    colorType: 'color',
-    density: 300,
-    jobName: 'Photodesign Clickbooth 4x6 Portrait Bleed',
+    jobName: 'Photodesign Clickbooth',
   })
 
   const data = [
