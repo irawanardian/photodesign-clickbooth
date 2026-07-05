@@ -69,15 +69,20 @@ function BoothPage({
   }, [eventTitle, eventSubtitle, selectedFrame])
 
   const effectiveTotalPhotos = useMemo(() => {
-    const slotCount = Array.isArray(outputFrame.photoSlots) ? outputFrame.photoSlots.length : 0
+    const slots = Array.isArray(outputFrame.photoSlots) ? outputFrame.photoSlots : []
+    const photoIndexes = slots
+      .map((slot) => Number(slot?.photoIndex))
+      .filter((index) => Number.isInteger(index) && index >= 0)
 
-    if (slotCount > 0) return slotCount
+    if (photoIndexes.length > 0) {
+      return Math.max(...photoIndexes) + 1
+    }
 
     const configuredTotal = Number(sessionTotalPhotos)
 
     return Number.isFinite(configuredTotal) && configuredTotal > 0
       ? configuredTotal
-      : 3
+      : slots.length || 3
   }, [outputFrame.photoSlots, sessionTotalPhotos])
 
   const activeCaptureAspectRatio = useMemo(() => {
