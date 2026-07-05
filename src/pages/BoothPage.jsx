@@ -86,11 +86,19 @@ function BoothPage({
     const slot = slots[slotIndex] || slots[0]
     const slotWidthPercent = Number(slot?.width)
     const slotHeightPercent = Number(slot?.height)
+    const templateCanvasWidth = Number(outputFrame.canvasWidth || outputFrame.canvas_width || 1200)
+    const templateCanvasHeight = Number(outputFrame.canvasHeight || outputFrame.canvas_height || 1800)
 
-    // photoSlots pakai persen: width relatif ke canvas width, height relatif ke canvas height.
-    // Jadi rasio asli slot harus dikalikan rasio canvas output.
-    const paperSize = String(outputFrame.paperSize || outputFrame.paper_size || '4x6').toLowerCase()
-    const canvasAspectRatio = paperSize === '4x6' ? 1800 / 1200 : 1200 / 1800
+    // photoSlots pakai persen:
+    // width relatif ke canvasWidth template, height relatif ke canvasHeight template.
+    // Jadi rasio asli slot harus dihitung dari ukuran canvas template yang sebenarnya.
+    const canvasAspectRatio =
+      Number.isFinite(templateCanvasWidth) &&
+      Number.isFinite(templateCanvasHeight) &&
+      templateCanvasWidth > 0 &&
+      templateCanvasHeight > 0
+        ? templateCanvasWidth / templateCanvasHeight
+        : 4 / 3
 
     if (
       Number.isFinite(slotWidthPercent) &&
@@ -102,7 +110,14 @@ function BoothPage({
     }
 
     return 4 / 3
-  }, [currentPhotoIndex, outputFrame.paperSize, outputFrame.paper_size, outputFrame.photoSlots])
+  }, [
+    currentPhotoIndex,
+    outputFrame.canvasHeight,
+    outputFrame.canvasWidth,
+    outputFrame.canvas_height,
+    outputFrame.canvas_width,
+    outputFrame.photoSlots,
+  ])
 
   const isSessionComplete = photos.length === effectiveTotalPhotos && stripUrl
   const isFocusCameraMode = isSessionRunning
