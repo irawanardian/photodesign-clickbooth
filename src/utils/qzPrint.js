@@ -71,7 +71,26 @@ export async function printImageWithQz(imageDataUrl, preferredPrinterName = '') 
   }
 
   const base64Image = stripDataUrlPrefix(imageDataUrl)
-  const config = qz.configs.create(printerName)
+
+  const config = qz.configs.create(printerName, {
+    units: 'in',
+    size: {
+      width: 4,
+      height: 6,
+    },
+    orientation: 'portrait',
+    margins: {
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+    },
+    scaleContent: true,
+    interpolation: 'bicubic',
+    colorType: 'color',
+    density: 300,
+    jobName: 'Photodesign Clickbooth 4x6 Portrait',
+  })
 
   const data = [
     {
